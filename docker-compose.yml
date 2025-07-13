@@ -1,0 +1,27 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: bn-payment-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: bn_payment
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db:/docker-entrypoint-initdb.d
+    networks:
+      - bn-payment-network
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  bn-payment-network:
+    name: bn-payment-network
+    driver: bridge
+  payment-processor:
+    external: true
