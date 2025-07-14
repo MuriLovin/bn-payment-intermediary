@@ -3,6 +3,7 @@ import { t } from "elysia";
 import { Payment } from "../providers/types/payment-processor";
 import { RinhaPaymentProcessor } from "../providers/rinha-payment-processor";
 import { ProcessorId } from "../types/processor-id";
+import { paymentQueue } from "../queues/payment-queue";
 
 export const PaymentRequestBodySchema = t.Object({
   correlationId: t.String(),
@@ -28,39 +29,13 @@ export class PaymentController {
   }
 
   async createPayment(data: PaymentRequestBody) {
-    const { amount, correlationId } = data;
-
-    let processorId = ProcessorId.Default;
-    let processorResult = await this.provider.send({
-      correlationId,
-      amount,
-      requestedAt: new Date().toISOString(),
+    paymentQueue.add({
+      data,
     });
 
-    if (!processorResult) {
-      this.provider.setFallback(true);
-      processorId = ProcessorId.Fallback;
-      processorResult = await this.provider.send({
-        correlationId,
-        amount,
-        requestedAt: new Date().toISOString(),
-      });
-    }
-
-    if (!processorResult) {
-      return {
-        message: "Payment Rejected",
-        amount,
-        correlationId,
-      }
-    }
-
-    await sql`INSERT INTO payments (amount, correlation_id, processor_id) VALUES (${amount}, ${correlationId}, ${processorId})`;
-
     return {
+      success: true,
       message: "Payment received",
-      amount,
-      correlationId,
     };
   }
 
