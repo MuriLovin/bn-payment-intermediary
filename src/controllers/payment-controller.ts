@@ -1,8 +1,7 @@
 import { sql } from "bun";
 import { t } from "elysia";
-import { Payment } from "../providers/types/payment-processor";
-import { RinhaPaymentProcessor } from "../providers/rinha-payment-processor";
 import { ProcessorId } from "../types/processor-id";
+import { paymentQueue } from "../queues/payment-queue";
 
 export const PaymentRequestBodySchema = t.Object({
   correlationId: t.String(),
@@ -21,47 +20,16 @@ export const PaymentRequestQuerySchema = t.Optional(
 export type PaymentRequestQuery = typeof PaymentRequestQuerySchema.static;
 
 export class PaymentController {
-  private provider: Payment.Processor;
-
-  constructor() {
-    this.provider = new RinhaPaymentProcessor();
-  }
-
   async createPayment(data: PaymentRequestBody) {
-    const { amount, correlationId } = data;
-
-    let processorId = ProcessorId.Default;
-    let processorResult = await this.provider.send({
-      correlationId,
-      amount,
-      requestedAt: new Date().toISOString(),
+    paymentQueue.add(data, {
+      attempts: 3,
+      backoff: {
+        type: "exponential",
+        delay: 1000,
+      },
     });
 
-    if (!processorResult) {
-      this.provider.setFallback(true);
-      processorId = ProcessorId.Fallback;
-      processorResult = await this.provider.send({
-        correlationId,
-        amount,
-        requestedAt: new Date().toISOString(),
-      });
-    }
-
-    if (!processorResult) {
-      return {
-        message: "Payment Rejected",
-        amount,
-        correlationId,
-      };
-    }
-
-    await sql`INSERT INTO payments (amount, correlation_id, processor_id) VALUES (${amount}, ${correlationId}, ${processorId})`;
-
-    return {
-      message: "Payment received",
-      amount,
-      correlationId,
-    };
+    return "Payment received";
   }
 
   async getSummary(data: PaymentRequestQuery) {
