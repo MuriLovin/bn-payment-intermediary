@@ -14,16 +14,19 @@ x-services-template: &backend-template
     - PGPASSWORD=postgres
     - PAYMENT_PROCESSOR_DEFAULT_URL=http://payment-processor-default:8080
     - PAYMENT_PROCESSOR_FALLBACK_URL=http://payment-processor-fallback:8080
+    - REDIS_HOST=redis
+    - REDIS_PORT=6379
   networks:
     - bn-payment-network
     - payment-processor
   depends_on:
     - postgres
+    - redis
   deploy:
     resources:
       limits:
-        cpus: "1"
-        memory: "87.5MB"
+        cpus: "0.3"
+        memory: "70MB"
 
 services:
   nginx:
@@ -42,8 +45,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.375"
-          memory: "87.5MB"
+          cpus: "0.3"
+          memory: "70MB"
 
   backend-1:
     <<: *backend-template
@@ -73,8 +76,22 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.375"
-          memory: "87.5MB"
+          cpus: "0.3"
+          memory: "70MB"
+
+  redis:
+    image: redis:7-alpine
+    container_name: bn-payment-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    networks:
+      - bn-payment-network
+    deploy:
+      resources:
+        limits:
+          cpus: "0.3"
+          memory: "70MB"
 
 volumes:
   postgres_data:
