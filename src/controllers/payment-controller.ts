@@ -52,7 +52,7 @@ export class PaymentController {
         message: "Payment Rejected",
         amount,
         correlationId,
-      }
+      };
     }
 
     await sql`INSERT INTO payments (amount, correlation_id, processor_id) VALUES (${amount}, ${correlationId}, ${processorId})`;
@@ -70,7 +70,7 @@ export class PaymentController {
     let filter = sql``;
 
     if (from && to) {
-      filter = sql`WHERE created_at >= ${from} && created_at <= ${to}`;
+      filter = sql`WHERE created_at >= ${from} AND created_at <= ${to}`;
     } else if (from) {
       filter = sql`WHERE created_at >= ${from}`;
     } else if (to) {
@@ -89,7 +89,16 @@ export class PaymentController {
         totalRequests: number;
         totalAmount: number;
       }
-    > = {};
+    > = {
+      default: {
+        totalAmount: 0,
+        totalRequests: 0,
+      },
+      fallback: {
+        totalAmount: 0,
+        totalRequests: 0,
+      },
+    };
 
     rows.forEach(
       (row: {
