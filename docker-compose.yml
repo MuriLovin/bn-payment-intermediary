@@ -1,4 +1,60 @@
+x-services-template: &backend-template
+  image: oven/bun:1.2.14
+  volumes:
+    - ./:/app
+  command: bun run dev
+  working_dir: /app
+  environment:
+    - NODE_ENV=development
+    - PORT=4000
+    - PGHOST=postgres
+    - PGPORT=5432
+    - PGDATABASE=bn_payment
+    - PGUSERNAME=postgres
+    - PGPASSWORD=postgres
+    - PAYMENT_PROCESSOR_DEFAULT_URL=http://payment-processor-default:8080
+    - PAYMENT_PROCESSOR_FALLBACK_URL=http://payment-processor-fallback:8080
+  networks:
+    - bn-payment-network
+    - payment-processor
+  depends_on:
+    - postgres
+  deploy:
+    resources:
+      limits:
+        cpus: "1"
+        memory: "87.5MB"
+
 services:
+  nginx:
+    image: nginx:latest
+    container_name: bn-payment-nginx
+    restart: unless-stopped
+    ports:
+      - "9999:9999"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    networks:
+      - bn-payment-network
+    depends_on:
+      - backend-1
+      - backend-2
+    deploy:
+      resources:
+        limits:
+          cpus: "0.375"
+          memory: "87.5MB"
+
+  backend-1:
+    <<: *backend-template
+    container_name: bn-payment-backend-1
+    hostname: backend-1
+
+  backend-2:
+    <<: *backend-template
+    container_name: bn-payment-backend-2
+    hostname: backend-2
+
   postgres:
     image: postgres:15-alpine
     container_name: bn-payment-db
@@ -14,6 +70,11 @@ services:
       - ./init-db:/docker-entrypoint-initdb.d
     networks:
       - bn-payment-network
+    deploy:
+      resources:
+        limits:
+          cpus: "0.375"
+          memory: "87.5MB"
 
 volumes:
   postgres_data:
