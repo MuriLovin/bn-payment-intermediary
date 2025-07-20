@@ -7,14 +7,14 @@ x-services-template: &backend-template
   environment:
     - NODE_ENV=development
     - PORT=4000
-    - PGHOST=postgres
+    - PGHOST=bn-payment-db
     - PGPORT=5432
     - PGDATABASE=bn_payment
     - PGUSERNAME=postgres
     - PGPASSWORD=postgres
     - PAYMENT_PROCESSOR_DEFAULT_URL=http://payment-processor-default:8080
     - PAYMENT_PROCESSOR_FALLBACK_URL=http://payment-processor-fallback:8080
-    - REDIS_HOST=redis
+    - REDIS_HOST=bn-payment-redis
     - REDIS_PORT=6379
   networks:
     - bn-payment-network
