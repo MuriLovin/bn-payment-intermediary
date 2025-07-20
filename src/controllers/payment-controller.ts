@@ -1,5 +1,5 @@
 import { sql } from "bun";
-import { t } from "elysia";
+import { status, t } from "elysia";
 import { ProcessorId } from "../types/processor-id";
 import { paymentQueue } from "../queues/payment-queue";
 
@@ -21,13 +21,7 @@ export type PaymentRequestQuery = typeof PaymentRequestQuerySchema.static;
 
 export class PaymentController {
   async createPayment(data: PaymentRequestBody) {
-    paymentQueue.add(data, {
-      attempts: 3,
-      backoff: {
-        type: "exponential",
-        delay: 1000,
-      },
-    });
+    paymentQueue.add("PaymentProcess", data);
 
     return "Payment received";
   }
@@ -93,5 +87,19 @@ export class PaymentController {
     );
 
     return response;
+  }
+
+  async purgePayments() {
+    const result = await sql`TRUNCATE TABLE payments`;
+
+    if (result) {
+      return {
+        message: "All payments purged.",
+      };
+    }
+
+    return status(500, {
+      message: "Fail to purge payments"
+    });
   }
 }

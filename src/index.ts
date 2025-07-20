@@ -4,25 +4,31 @@ import {
   PaymentRequestBodySchema,
   PaymentRequestQuerySchema,
 } from "./controllers/payment-controller";
+import { startWorker } from "./workers/payment-worker";
 
 const PORT = process.env.PORT || 3000;
+
+const controller = new PaymentController();
 
 const app = new Elysia()
   .get(
     "/payments-summary",
-    ({ query }) => new PaymentController().getSummary(query),
+    ({ query }) => controller.getSummary(query),
     {
       query: PaymentRequestQuerySchema,
     }
   )
   .post(
     "/payments",
-    ({ body }) => new PaymentController().createPayment(body),
+    ({ body }) => controller.createPayment(body),
     {
       body: PaymentRequestBodySchema,
     }
   )
+  .post("/purge-payments", () => controller.purgePayments())
   .listen(PORT);
+
+startWorker();
 
 console.log(
   `🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port}`
